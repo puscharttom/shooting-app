@@ -292,11 +292,13 @@ function renderSetList() {
         const item = document.createElement("div");
         item.className = "dropdown-item";
 
-        // STOP propagation
-        item.onmousedown = e => { if (e.target.tagName === "INPUT") e.stopPropagation(); };
+        // --- Klickfläche für Auswahl ---
+        const selectArea = document.createElement("div");
+        selectArea.style.flex = "1";
+        selectArea.style.paddingRight = "10px";
+        selectArea.textContent = set.name;
 
-        // Set auswählen
-        item.onclick = () => {
+        selectArea.onclick = () => {
             activeSet = set.id;
             saveSets();
             renderSetList();
@@ -304,32 +306,41 @@ function renderSetList() {
             menu.classList.remove("open");
         };
 
-        // Input zum Ändern des Namens
-        const input = document.createElement("input");
-        input.value = set.name;
+        // --- EDIT BUTTON ---
+        const editBtn = document.createElement("span");
+        editBtn.textContent = "📝";
+        editBtn.style.marginRight = "10px";
+        editBtn.style.cursor = "pointer";
 
-        input.onclick = e => e.stopPropagation();
-        input.onfocus = e => e.stopPropagation();
-        input.onmousedown = e => e.stopPropagation();
-        input.ontouchstart = e => e.stopPropagation();
-        
-        input.oninput = e => {
-            set.name = e.target.value;
-            saveSets();
+        editBtn.onclick = (e) => {
+            e.stopPropagation();
+
+            const newName = prompt("Neuen Set-Namen eingeben:", set.name);
+            if (newName && newName.trim() !== "") {
+                set.name = newName.trim();
+                saveSets();
+                renderSetList();
+            }
         };
 
-
-        // Delete
+        // --- DELETE BUTTON ---
         const del = document.createElement("span");
         del.className = "dropdown-delete";
         del.textContent = "✕";
+
         del.onclick = (e) => {
             e.stopPropagation();
-            deleteSet(set.id);
+
+            if (confirm(`"${set.name}" wirklich löschen?`)) {
+                deleteSet(set.id);
+            }
         };
 
-        item.appendChild(input);
+        // Zusammenbauen
+        item.appendChild(selectArea);
+        item.appendChild(editBtn);
         item.appendChild(del);
+
         menu.appendChild(item);
     });
 
@@ -345,7 +356,6 @@ function renderSetList() {
     };
     menu.appendChild(add);
 }
-
 
 // ---------- RENDER CHECKLIST ----------
 function renderChecklist() {
