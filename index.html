@@ -238,6 +238,13 @@ function renderSetList() {
 
         const nameInput = document.createElement("input");
         nameInput.value = set.name;
+        
+        // Fix für iOS / Android – verhindert dass der Eltern-Click die Tastatur blockiert
+        nameInput.onclick = (e) => e.stopPropagation();
+        nameInput.onfocus = (e) => e.stopPropagation();
+        nameInput.onmousedown = (e) => e.stopPropagation();
+        nameInput.ontouchstart = (e) => e.stopPropagation();
+        
         nameInput.oninput = (e) => {
             set.name = e.target.value;
             saveSets();
