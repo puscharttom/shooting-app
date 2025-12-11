@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shooting Checklist – PWA</title>
+
+<!-- PWA META -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#111">
+
+<!-- iOS Support -->
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+<style>
+    body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #111;
+        color: #eee;
+        padding: 20px;
+    }
+
+    h1 {
+        margin-top: 0;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: auto;
+    }
+
+    /* SET LIST LEFT SIDE */
+    .set-list {
+        background: #1a1a1a;
+        padding: 10px;
+        border-radius: 10px;
+        border: 1px solid #333;
+        margin-bottom: 20px;
+    }
+
+    .set-item {
+        padding: 10px;
+        border-radius: 6px;
+        background: #222;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    .set-item.active {
+        background: #333;
+        border: 1px solid #e63946;
+    }
+
+    .set-item input {
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-size: 16px;
+        width: 100%;
+    }
+
+    .delete-btn {
+        background: #400;
+        border: none;
+        color: #fff;
+        padding: 5px 8px;
+        cursor: pointer;
+        border-radius: 4px;
+        margin-left: 10px;
+    }
+
+    .add-set {
+        width: 100%;
+        padding: 12px;
+        background: #064f2a;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 12px;
+        font-size: 16px;
+    }
+
+    /* CHECKLIST */
+    .section {
+        background: #1a1a1a;
+        padding: 18px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border: 1px solid #333;
+    }
+
+    label {
+        display: flex;
+        align-items: center;
+        padding: 6px 0;
+        cursor: pointer;
+    }
+
+    input[type="checkbox"] {
+        transform: scale(1.3);
+        margin-right: 12px;
+        accent-color: #e63946;
+    }
+
+    .reset {
+        background: #8b0000;
+        padding: 10px 14px;
+        border-radius: 6px;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 10px;
+        font-size: 15px;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Shooting Checklist</h1>
+
+    <div class="set-list" id="setList"></div>
+    <button class="add-set" onclick="addSet()">+ Neues Set hinzufügen</button>
+
+    <div id="checklist"></div>
+</div>
+
+<script>
+// ---------- DEFAULT CHECKLIST STRUCTURE ----------
+const checklistTemplate = [
+    {
+        title: "Setup",
+        tasks: [
+            "Outfit sitzt korrekt",
+            "Haare in Ausgangsform",
+            "Make-up passend zur Variante",
+            "Props/Deko bereitgelegt",
+            "Licht korrekt eingestellt",
+            "Hintergrund sauber"
+        ]
+    },
+    {
+        title: "Pflicht-Shots",
+        tasks: [
+            "Front Full Body",
+            "¾ Pose (links oder rechts)",
+            "Close-up Gesicht / Make-up",
+            "Half-Body Pose",
+            "Eine Sitz- oder Bodenpose",
+            "Bewegung (Schritt, Drehung, Haarbewegung)"
+        ]
+    },
+    {
+        title: "Varianten",
+        tasks: [
+            "Close-Up Lippen / Augen / MU-Variante",
+            "Detailshot Accessoires",
+            "Themenpose (Zuckerstange, Gold, Silber, Dark etc.)",
+            "1 Fun/Experiment-Shot"
+        ]
+    },
+    {
+        title: "Mini-Serien (optional)",
+        tasks: [
+            "3 Mikro-Emotionen (soft, smile, fierce, dreamy)",
+            "3 alternative Sitz/Boden-Perspektiven"
+        ]
+    },
+    {
+        title: "Abschluss-Check",
+        tasks: [
+            "Guter Full Body?",
+            "Gutes Beauty Portrait?",
+            "Variante gut eingefangen?",
+            "2 Fotos mit perfektem Outfit?",
+            "Key Visual vorhanden?"
+        ]
+    }
+];
+
+// ---------- SET MANAGEMENT ----------
+let sets = JSON.parse(localStorage.getItem("sets")) || [
+    { id: 1, name: "Set 1", data: {} }
+];
+
+let activeSet = sets[0].id;
+
+// Save sets
+function saveSets() {
+    localStorage.setItem("sets", JSON.stringify(sets));
+}
+
+// Add new set
+function addSet() {
+    const newId = Date.now();
+    sets.push({ id: newId, name: "Neues Set", data: {} });
+    activeSet = newId;
+    saveSets();
+    renderSetList();
+    renderChecklist();
+}
+
+// Delete set
+function deleteSet(id) {
+    if (sets.length === 1) return alert("Mindestens ein Set muss existieren.");
+    sets = sets.filter(s => s.id !== id);
+    activeSet = sets[0].id;
+    saveSets();
+    renderSetList();
+    renderChecklist();
+}
+
+// ---------- RENDER SET LIST ----------
+function renderSetList() {
+    const list = document.getElementById("setList");
+    list.innerHTML = "";
+
+    sets.forEach(set => {
+        const div = document.createElement("div");
+        div.className = "set-item" + (set.id === activeSet ? " active" : "");
+
+        div.onclick = () => {
+            activeSet = set.id;
+            renderSetList();
+            renderChecklist();
+        };
+
+        // STOP CLICK propagation when editing text
+        div.onmousedown = e => { if (e.target.tagName === "INPUT") e.stopPropagation(); };
+
+        const nameInput = document.createElement("input");
+        nameInput.value = set.name;
+        nameInput.oninput = (e) => {
+            set.name = e.target.value;
+            saveSets();
+        };
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.textContent = "x";
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteSet(set.id);
+        };
+
+        div.appendChild(nameInput);
+        div.appendChild(deleteBtn);
+        list.appendChild(div);
+    });
+}
+
+// ---------- RENDER CHECKLIST ----------
+function renderChecklist() {
+    const container = document.getElementById("checklist");
+    container.innerHTML = "";
+
+    const currentSet = sets.find(s => s.id === activeSet);
+    const state = currentSet.data;
+
+    checklistTemplate.forEach((section, sIndex) => {
+        const box = document.createElement("div");
+        box.className = "section";
+
+        const title = document.createElement("h2");
+        title.textContent = section.title;
+        box.appendChild(title);
+
+        section.tasks.forEach((task, tIndex) => {
+            const id = `${activeSet}-${sIndex}-${tIndex}`;
+
+            const label = document.createElement("label");
+            const check = document.createElement("input");
+            check.type = "checkbox";
+            check.checked = state[id] || false;
+
+            check.addEventListener("change", () => {
+                state[id] = check.checked;
+                currentSet.data = state;
+                saveSets();
+            });
+
+            label.appendChild(check);
+            label.appendChild(document.createTextNode(task));
+            box.appendChild(label);
+        });
+
+        container.appendChild(box);
+    });
+
+    // Reset Button
+    const reset = document.createElement("button");
+    reset.textContent = "Set zurücksetzen";
+    reset.className = "reset";
+    reset.onclick = () => {
+        currentSet.data = {};
+        saveSets();
+        renderChecklist();
+    };
+    container.appendChild(reset);
+}
+
+// INITIAL RENDER
+renderSetList();
+renderChecklist();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker.register("service-worker.js")
+            .then(() => console.log("Service Worker registered"))
+            .catch(err => console.log("SW error", err));
+    });
+}
+</script>
+</body>
+</html>
