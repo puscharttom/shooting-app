@@ -124,6 +124,59 @@
         margin-top: 10px;
         font-size: 15px;
     }
+
+    .dropdown-btn {
+    width: 100%;
+    padding: 14px;
+    background: #222;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 8px;
+    text-align: left;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.dropdown-menu {
+    display: none;
+    background: #1b1b1b;
+    border: 1px solid #333;
+    border-radius: 8px;
+    margin-top: 8px;
+    padding: 8px 0;
+}
+
+.dropdown-menu.open {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background: #333;
+}
+
+.dropdown-item input {
+    width: 100%;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 15px;
+}
+
+.dropdown-delete {
+    color: #f55;
+    font-weight: bold;
+    padding-left: 10px;
+    cursor: pointer;
+}
+
 </style>
 </head>
 <body>
@@ -131,12 +184,13 @@
 <div class="container">
     <h1>Shooting Checklist</h1>
 
-    <div class="set-list" id="setList"></div>
-    <button class="add-set" onclick="addSet()">+ Neues Set hinzufügen</button>
+    <div class="set-dropdown">
+        <button id="setDropdownBtn" class="dropdown-btn">Set wählen ▼</button>
+        <div id="setDropdownMenu" class="dropdown-menu"></div>
+    </div>
 
     <div id="checklist"></div>
 </div>
-
 <script>
 // ---------- DEFAULT CHECKLIST STRUCTURE ----------
 const checklistTemplate = [
@@ -224,49 +278,74 @@ function deleteSet(id) {
 
 // ---------- RENDER SET LIST ----------
 function renderSetList() {
-    const list = document.getElementById("setList");
-    list.innerHTML = "";
+    const menu = document.getElementById("setDropdownMenu");
+    const button = document.getElementById("setDropdownBtn");
+
+    // Titel aktualisieren
+    const active = sets.find(s => s.id === activeSet);
+    button.textContent = active.name + " ▼";
+
+    // Dropdown leeren
+    menu.innerHTML = "";
 
     sets.forEach(set => {
-        const div = document.createElement("div");
-        div.className = "set-item" + (set.id === activeSet ? " active" : "");
+        const item = document.createElement("div");
+        item.className = "dropdown-item";
 
-        div.onclick = () => {
+        // STOP propagation
+        item.onmousedown = e => { if (e.target.tagName === "INPUT") e.stopPropagation(); };
+
+        // Set auswählen
+        item.onclick = () => {
             activeSet = set.id;
+            saveSets();
             renderSetList();
             renderChecklist();
+            menu.classList.remove("open");
         };
 
-        // STOP CLICK propagation when editing text
-        div.onmousedown = e => { if (e.target.tagName === "INPUT") e.stopPropagation(); };
+        // Input zum Ändern des Namens
+        const input = document.createElement("input");
+        input.value = set.name;
 
-        const nameInput = document.createElement("input");
-        nameInput.value = set.name;
+        input.onclick = e => e.stopPropagation();
+        input.onfocus = e => e.stopPropagation();
+        input.onmousedown = e => e.stopPropagation();
+        input.ontouchstart = e => e.stopPropagation();
         
-        // Fix für iOS / Android – verhindert dass der Eltern-Click die Tastatur blockiert
-        nameInput.onclick = (e) => e.stopPropagation();
-        nameInput.onfocus = (e) => e.stopPropagation();
-        nameInput.onmousedown = (e) => e.stopPropagation();
-        nameInput.ontouchstart = (e) => e.stopPropagation();
-        
-        nameInput.oninput = (e) => {
+        input.oninput = e => {
             set.name = e.target.value;
             saveSets();
         };
 
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "delete-btn";
-        deleteBtn.textContent = "x";
-        deleteBtn.onclick = (e) => {
+
+        // Delete
+        const del = document.createElement("span");
+        del.className = "dropdown-delete";
+        del.textContent = "✕";
+        del.onclick = (e) => {
             e.stopPropagation();
             deleteSet(set.id);
         };
 
-        div.appendChild(nameInput);
-        div.appendChild(deleteBtn);
-        list.appendChild(div);
+        item.appendChild(input);
+        item.appendChild(del);
+        menu.appendChild(item);
     });
+
+    // Add button
+    const add = document.createElement("div");
+    add.className = "dropdown-item";
+    add.style.color = "#6f6";
+    add.textContent = "+ Neues Set";
+    add.onclick = (e) => {
+        e.stopPropagation();
+        addSet();
+        menu.classList.add("open");
+    };
+    menu.appendChild(add);
 }
+
 
 // ---------- RENDER CHECKLIST ----------
 function renderChecklist() {
@@ -330,6 +409,10 @@ if ("serviceWorker" in navigator) {
             .catch(err => console.log("SW error", err));
     });
 }
+    document.getElementById("setDropdownBtn").onclick = () => {
+    document.getElementById("setDropdownMenu").classList.toggle("open");
+};
+
 </script>
 </body>
 </html>
